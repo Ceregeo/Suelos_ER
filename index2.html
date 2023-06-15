@@ -1,0 +1,112 @@
+<html>
+  <head>
+    <title>PMTiles MapLibre Example</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" crossorigin="anonymous">
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/pmtiles@2.7.2/dist/index.js"></script>
+    <script src='https://github.com/acalcutt/maplibre-gl-inspect/releases/download/v1.4.6/maplibre-gl-inspect.min.js'></script>
+    <link href='https://github.com/acalcutt/maplibre-gl-inspect/releases/download/v1.4.6/maplibre-gl-inspect.css' rel='stylesheet' />
+    <style>
+      body {
+        margin: 0;
+      }
+      #map {
+        height:100%; width:100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript">
+      // add the PMTiles plugin to the maplibregl global.
+      let protocol = new pmtiles.Protocol();
+      maplibregl.addProtocol("pmtiles",protocol.tile);
+
+      let PMTILES_URL = "https://ide-suelo.s3.amazonaws.com/suelos_ER.pmtiles";
+
+      const p = new pmtiles.PMTiles(PMTILES_URL)
+
+      // this is so we share one instance across the JS code and the map renderer
+      protocol.add(p);
+
+      // we first fetch the header so we can get the center lon, lat of the map.
+      p.getHeader().then(h => {
+        const map = new maplibregl.Map({
+          container: 'map',
+          zoom: h.maxZoom-3,
+          center: [h.centerLon, h.centerLat],
+          style: {
+            version:8,
+            sources: {
+              "google_satellite": {
+                "type": "raster",
+                "tiles": [
+                  "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                ],
+                "tileSize": 256
+              },
+              "example_source": {
+                  type: "vector",
+                  url: "pmtiles://" + PMTILES_URL,
+                  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'
+                }
+              },
+              layers: [
+                {
+                  "id": "google_satellite",
+                  "type": "raster",
+                  "source": "google_satellite",
+                  "minzoom": 0,
+                  "maxzoom": 22
+                },
+                {
+                  "id":"suelos",
+                  "source": "example_source",
+                  "source-layer":"suelos",
+                  "type": "fill",
+                  "paint": {
+                      "fill-color": "steelblue"
+                  }
+                },
+                {
+                  "id":"suelos_ER",
+                  "source": "example_source",
+                  "source-layer":"suelos_ER",
+                  "type": "fill",
+                  "paint": {
+                    "fill-color":  [
+                        "match",
+                        ["get", "depart"], // property to match against
+                        "Victoria", "#fbb03b", // if "serie_1" equals "value1", color fill with color1
+                        "Nogoyá", "#223b53", // if "serie_1" equals "value2", color fill with color2
+                        "Paraná", "#e55e5e", // if "serie_1" equals "value3", color fill with color3
+                        "steelblue" // fallback color if no match is found
+                    ],
+                    "fill-opacity": 0.5,
+                    "fill-outline-color": "black"
+                  }
+                },
+                {
+                  "id":"mask",
+                  "source": "example_source",
+                  "source-layer":"mask",
+                  "type": "fill",
+                  "paint": {
+                      "fill-color": "white"
+                  }
+                }
+              ]
+          }
+        });
+        map.addControl(new MaplibreInspect({
+            showInspectMap: true,
+            showInspectButton: false
+            }));
+        map.showTileBoundaries = False;
+
+      })
+
+    </script>
+  </body>
+</html>

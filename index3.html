@@ -1,0 +1,149 @@
+<html>
+  <head>
+    <title>PMTiles MapLibre Example</title>
+    <meta charset="utf-8"/>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css" crossorigin="anonymous">
+    <script src="https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/pmtiles@2.7.2/dist/index.js"></script>
+
+    <style>
+      body {
+        margin: 0;
+      }
+      #map {
+        height:100%; width:100%;
+      }
+
+      /* Popup styling */
+      .mapboxgl-popup {
+        padding-bottom: 5px;
+      }
+
+      .mapboxgl-popup-content {
+        font: 400 15px/22px 'Roboto', 'Helvetica Neue', sans-serif;
+        padding: 0;
+        width: 180px;
+      }
+
+      .mapboxgl-popup-close-button {
+        display: none;
+      }
+
+      .mapboxgl-popup-content-wrapper {
+        padding: 1%;
+      }
+
+      .mapboxgl-popup-content h3 {
+        background: steelblue;
+        color: #FFFFFF;
+        margin: 0;
+        display: block;
+        padding: 10px;
+        border-radius: 3px 3px 0 0;
+        font-weight: 700;
+        margin-top: -15px;
+      }
+
+      .mapboxgl-popup-content h4 {
+        margin: 0;
+        display: block;
+        padding: 10px 10px 0;
+        font-weight: 400;
+      }
+
+      .mapboxgl-popup-content div {
+        display: flex;
+        justify-content: space-between;
+        padding: 0 10px;
+      }
+
+      .mapboxgl-popup-tip {
+        background-color: transparent;
+      }
+
+      .geoJsonHover {
+        fill-opacity: 0.5;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script type="text/javascript">
+      // add the PMTiles plugin to the maplibregl global.
+      let protocol = new pmtiles.Protocol();
+      maplibregl.addProtocol("pmtiles",protocol.tile);
+
+      let PMTILES_URL = "https://ide-suelo.s3.amazonaws.com/suelos_ER.pmtiles";
+
+      const p = new pmtiles.PMTiles(PMTILES_URL)
+
+      // this is so we share one instance across the JS code and the map renderer
+      protocol.add(p);
+
+      // we first fetch the header so we can get the center lon, lat of the map.
+      p.getHeader().then(h => {
+        const map = new maplibregl.Map({
+          container: 'map',
+          zoom: h.maxZoom-4,
+          center: [h.centerLon, h.centerLat],
+          style: {
+            version:8,
+            sources: {
+              "google_satellite": {
+                "type": "raster",
+                "tiles": [
+                  "https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}"
+                ],
+                "tileSize": 256
+              },
+              "example_source": {
+                  type: "vector",
+                  url: "pmtiles://" + PMTILES_URL,
+                  attribution: '© <a href="https://openstreetmap.org">OpenStreetMap</a>'
+                }
+              },
+              layers: [
+                {
+                  "id": "google_satellite",
+                  "type": "raster",
+                  "source": "google_satellite",
+                  "minzoom": 0,
+                  "maxzoom": 22
+                },
+                {
+                  "id":"suelos",
+                  "source": "example_source",
+                  "source-layer":"suelos",
+                  "type": "fill",
+                  "paint": {
+                      "fill-color": "steelblue"
+                  }
+                },
+                {
+                  "id":"suelos_ER",
+                  "source": "example_source",
+                  "source-layer":"suelos_ER",
+                  "type": "line",
+                  "paint": {
+                      "line-color": "black",
+                  }
+                },
+                {
+                  "id":"mask",
+                  "source": "example_source",
+                  "source-layer":"mask",
+                  "type": "fill",
+                  "paint": {
+                      "fill-color": "white"
+                  }
+                }
+              ]
+          }
+        });
+        
+        map.showTileBoundaries = False;
+      })
+    </script>
+  </body>
+</html>
